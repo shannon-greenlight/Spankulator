@@ -5,15 +5,20 @@
 #define LFO_BASE_PERIOD 2
 #define LFO_BASE_DELAY 2
 #define LFO_PARTS 128
+#define LFO_PERIOD_INDX 0
+#define LFO_WAVEFORM_INDX 1
 
 void lfo_fxn();
 
-EEPROM_Int lfo_waveform_num = EEPROM_Int(0, 1); // set max to real max when lfo_num_waveforms has been defined
 uint16_t wave_table[128] PROGMEM;
 int delay_usecs=39047;
-// int lfo_param_num=0;
-// uint16_t lfo_period = 9999;
-EEPROM_Int lfo_period = EEPROM_Int(10,9990);  // set max to real max when num_fxns has been defined
+
+uint16_t _lfo_params[] = {10,0};
+uint16_t _lfo_mins[] = {10,0};
+uint16_t _lfo_maxs[] = {9999,1};
+uint16_t *lfo_stuff[] = {_lfo_params, _lfo_mins, _lfo_maxs};
+String lfo_labels[] = {"Period: ","Waveform: "};
+SPANK_fxn lfo_spanker("LFO", lfo_labels, lfo_stuff, sizeof(_lfo_params)/sizeof(_lfo_params[0]), &ui);
 
 // void write_dac(uint16_t val) {
 //   val = ( val << 2 ) | 0x3000;
@@ -22,41 +27,51 @@ EEPROM_Int lfo_period = EEPROM_Int(10,9990);  // set max to real max when num_fx
 //   digitalWrite(dac_select_pin, HIGH); // de-initialize the chip
 // }
 
-String lfo_params_toJSON() {
-    String out = "";
-    out += "{ ";
-    out += toJSON("label","Period (ms)");
-    out += ", ";
-    out += toJSON("type","number");
-    out += ", ";
-    out += toJSON("value",String(lfo_period.get()));
-    out += ", ";
-    out += toJSON("min",String(lfo_period.min));
-    out += ", ";
-    out += toJSON("max",String(lfo_period.max));
-    out += ", ";
-    out += toJSON("selected","true");
-    out += " }";
-    out += ",";
-    out += "{ ";
-    out += toJSON("label","Waveform");
-    out += ", ";
-    out += toJSON("type","text");
-    out += ", ";
-    out += toJSON("value",lfo_waveform_num.get()==0 ? "Sine" : "Ramp" );
-    out += ", ";
-    out += toJSON("selected","false");
-    out += " }";
-    return "["+out+"]";
+String lfo_waveform_name() {
+    return lfo_spanker.get_param(LFO_WAVEFORM_INDX)==0 ? "Sine" : "Ramp";
+    //return lfo_waveform_num.get()==0 ? "Sine" : "Ramp";
 }
 
-void lfo_print_param() {
-    ui.printParam("LFO ",lfo_period.get(),4,"%4d",3,2,"ms");
+// String lfo_params_toJSON() {
+//     String out = "";
+//     out += "{ ";
+//     out += toJSON("label","Period (ms)");
+//     out += ", ";
+//     out += toJSON("type","number");
+//     out += ", ";
+//     out += toJSON("value",String(lfo_period.get()));
+//     out += ", ";
+//     out += toJSON("min",String(lfo_period.min));
+//     out += ", ";
+//     out += toJSON("max",String(lfo_period.max));
+//     out += ", ";
+//     out += toJSON("selected","true");
+//     out += " }";
+//     out += ",";
+//     out += "{ ";
+//     out += toJSON("label","Waveform");
+//     out += ", ";
+//     out += toJSON("type","text");
+//     out += ", ";
+//     out += toJSON("value",lfo_waveform_name() );
+//     out += ", ";
+//     out += toJSON("selected","false");
+//     out += " }";
+//     return "["+out+"]";
+// }
+
+void lfo_print_params() {
+    ui.terminalPrintParam(DECAY_ROW,"Waveform: ",lfo_waveform_name());
+}
+
+void lfo_display() {
+  ui.newFxn(lfo_spanker.name);
+  lfo_spanker.printParams();
 }
 
 void lfo_set_waveform() {
     int temp;
-    switch(lfo_waveform_num.get()) {
+    switch(lfo_spanker.get_param(LFO_WAVEFORM_INDX)) {
     case 0:
         for(int i=0;i<LFO_PARTS;i++) {
             temp = (sin(6.28*i/LFO_PARTS)*511)+512;
@@ -72,25 +87,21 @@ void lfo_set_waveform() {
         }
         break;
     default:
-        Serial.println("LFO set waveform unknown table: "+String(lfo_waveform_num.get()));
+        Serial.println("LFO set waveform unknown table: "+String(lfo_spanker.get_param(LFO_WAVEFORM_INDX)));
     }
+    lfo_print_params();
+    //ui.terminalPrintParam(PULSE_LEN_ROW,"Waveform",lfo_waveform_name());
 }
 
-byte lfo_num_params = 2;    // see set_waveform for num cases
-
-void lfo_inc_param_num_by(int val) {
-    lfo_waveform_num.inc(val);
-    // lfo_param_num += val;
-    // if(lfo_param_num>1) lfo_param_num = 0;
-    // if(lfo_param_num<0) lfo_param_num = 1;
-    lfo_set_waveform();
+void set_adj() {
+    adj = analogRead(ain1_pin);
 }
 
 boolean user_adjusting() {
     static int cnt = 0;
-    if(true || cnt++>100) {
-        cnt=0;
-        adj = analogRead(ain1_pin);
+    if(cnt++>10) {
+        //cnt=0;
+        set_adj();
         scale = (adj/1023.0);
         offset = (512-adj/2);
         return abs(adj-init_adj)>40;
@@ -107,8 +118,8 @@ void lfo_housekeep() {
         
         lfo_set_waveform();
 
-        ui.clearDisplay();
-        lfo_print_param();
+        ui.fill(BLACK,16);
+        //lfo_new_fxn();
         //   ui.printText("LFO " + String(lfo_period.get()) + "ms",0,0,2);
         for(int i=0;i<128;i++) {
             float val = float(wave_table[i]) / 1024.0;
@@ -122,6 +133,9 @@ void lfo_housekeep() {
 }
 
 void lfo_do_trigger() {
+    do_toggle();
+    digitalWrite(gate_out_pin, HIGH);
+    set_adj();
     init_adj=adj;
     boolean adj_changed = false;
     for(int i=0;(i<LFO_PARTS)&&!keypress&&!e.getEncoderValue()&&!adj_changed;i++) {
@@ -136,64 +150,49 @@ void lfo_do_trigger() {
     //Serial.println("Adj changed: "+String(adj_changed));
     // if(adj_changed) lfo_fxn();
     doing_trigger = false;
+    digitalWrite(gate_out_pin, LOW);
 }
 
-uint16_t lfo_get_param() {
-    return lfo_period.get();
+// uint16_t lfo_get_param() {
+//     return lfo_period.get();
+// }
+
+void lfo_set_params() {
+    switch(lfo_spanker.param_num) {
+        case LFO_PERIOD_INDX:
+            delay_usecs = int(993.982*(lfo_spanker.get_param(LFO_PERIOD_INDX) - LFO_BASE_PERIOD)/LFO_PARTS);
+            break;
+        case LFO_WAVEFORM_INDX:
+            lfo_set_waveform();
+            break;
+    }
 }
 
 void lfo_put_param(uint16_t val) {
-    lfo_period.put(val);
-    delay_usecs = int(993.982*(lfo_period.get() - LFO_BASE_PERIOD)/LFO_PARTS);
-    lfo_print_param();
+    lfo_spanker.put_param(val);
+    lfo_set_params();
 }
 
 void lfo_adjust_param(int e, unsigned long delta) {
-    //float multiplier = 10000.0/LFO_PARTS;
-    float multiplier = 10;
-    if(delta < 350) {
-        multiplier = 1000;
-    } else {
-        if(delta<500) {
-            multiplier = 100;
-        }
-    }
-    uint16_t param = lfo_get_param();   // period in ms
-    param += e*multiplier;
-    lfo_put_param(param);
-    // lfo_period.put(param);
-    // delay_usecs = int(993.982*(lfo_period.get() - LFO_BASE_PERIOD)/LFO_PARTS);
-    // // delay_usecs = int(924.0*lfo_period.get()/LFO_PARTS);
-    // lfo_print_param();
+    lfo_spanker.adjust_param(e, delta);
+    lfo_put_param(lfo_spanker.get_param());
 }
 
 void lfo_fxn() {
-  disable_trigger(false);
-  int data[128];
-  
-  lfo_set_waveform();
-
-  ui.clearDisplay();
-  lfo_print_param();
-//   ui.printText("LFO " + String(lfo_period.get()) + "ms",0,0,2);
-  for(int i=0;i<128;i++) {
-    float val = float(wave_table[i]) / 1024.0;
-    data[i] = 63 - ( int(48*val));
-    //data[i] = 40+24*(cos(i/12.566)+.0001*(sin(i/1.28)));
-  }
-  ui.graphData(data);
-  ui.showDisplay();
+    disable_trigger(false);
+    the_spanker = &lfo_spanker;
+    lfo_set_params();
+    set_adj();
+    init_adj=adj;
+    lfo_display();
 }
 
 void lfo_begin() {
-    Serial.println("LFO beginning");
-    lfo_waveform_num.begin(false);
-    lfo_waveform_num.xfer();
-    lfo_period.begin(false);
-    lfo_period.xfer();
-    // lfo_param_num = 0;
+    // Serial.println("LFO beginning");
+    lfo_spanker.begin();
+    lfo_spanker.trigger_fxn = lfo_do_trigger;
     lfo_set_waveform();
-    lfo_adjust_param(0,1000); // set init delay value
+    //lfo_adjust_param(0,1000); // set init delay value
 }
 
 

@@ -13,7 +13,7 @@
 #include <TerminalVT100.h>
 #include <Greenface_EEPROM.h>
 #include <EEPROM_Arr16.h>
-#include <OLED_Display.h>
+#include "SPANK_ui.h"
 
 // library interface description
 class SPANK_fxn
@@ -21,9 +21,11 @@ class SPANK_fxn
     // user-accessible "public" interface
 public:
     typedef void(SPANK_fxn::*FunctionPointer)();
-    SPANK_fxn(String _name,String *_labels, uint16_t ** _params, uint16_t _num_params, OLED_Display *_ui);
+    SPANK_fxn(String _name,String *_labels, uint16_t ** _params, uint16_t _num_params, SPANK_ui *_ui);
     String name;
     String *labels;
+    boolean check_params=false;
+
     uint16_t num_params, param_num;
     uint8_t digit_num;
     void begin(void);
@@ -32,6 +34,7 @@ public:
     uint16_t get_max(int16_t indx=-1);
     void adjust_param(int e, unsigned long delta);
     void put_param(uint16_t val);
+    int check_param(int the_param);
     void inc_param_num_by(int val);
     void inc_dig_num_by(int val);
     void hilight_param(void);
@@ -51,17 +54,14 @@ public:
     // vectored fxns
     FunctionPointer display_fxn;
     void(*trigger_fxn)();
-    int (*check_params_fxn)(int);
 
     // library-accessible "private" interface
 private:
     int ui_lines[3];
-    OLED_Display *ui;
+    SPANK_ui *ui;
     EEPROM_Arr16 params;
-    void enter_string(uint16_t encoder_val);
     void default_display(void); // prints name and params
     uint8_t get_num_digits(int);
     String calc_format(uint8_t);
-    //void default_check_params(void); // checks params
 };
 #endif

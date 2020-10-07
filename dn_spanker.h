@@ -6,7 +6,7 @@ String dn_labels[] = {"Longest Pulse: ","Shortest Pulse: ", "Num Pulses: ", "Ran
 SPANK_fxn dn_spanker("Down", dn_labels, dn_stuff, sizeof(_dn_params)/sizeof(_dn_params[0]), &ui);
 
 void dn_trigger() {
-  Serial.println("Doing dn trigger");
+  // Serial.println("Doing dn trigger");
   float longest_pulse = float(the_spanker->get_param(LONGEST_PULSE));
   float shortest_pulse = the_spanker->get_param(SHORTEST_PULSE);
   float the_swell = (shortest_pulse-longest_pulse)/the_spanker->get_param(NUM_PULSES);
@@ -33,6 +33,6 @@ void dn_fxn() {
 void dn_begin() {
   dn_spanker.begin();
   dn_spanker.trigger_fxn = dn_trigger;
-  dn_spanker.check_params_fxn = check_param;
+  dn_spanker.check_params = true;
 }
 

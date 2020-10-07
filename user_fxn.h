@@ -137,7 +137,7 @@ String user_params_toJSON() {
   //SPANK_fxn s = user_get_spank_obj(user_string.charAt(user_dig_num));
   //SPANK_fxn s = *user_spanks[user_dig_num];
   //s.param_num=9999; // this prevents param from being selected
-  Serial.println("Params to JSON -- Spanker: " + user_spanks[user_dig_num]->name + " param_num: " + String(user_spanks[user_dig_num]->param_num));
+  // Serial.println("Params to JSON -- Spanker: " + user_spanks[user_dig_num]->name + " param_num: " + String(user_spanks[user_dig_num]->param_num));
   return user_spanks[user_dig_num]->params_toJSON();
 }
 
@@ -152,7 +152,7 @@ void user_begin() {
     //*user_spanks[i].xfer();
     SPANK_fxn f = user_get_spank_obj(user_string.charAt(i));
     if(f.name > "") {
-      Serial.println("User Begin: "+user_spanks[i]->name);
+      // Serial.println("User Begin: "+user_spanks[i]->name);
       user_spanks[i]->trigger_fxn=f.trigger_fxn;
       for(int j=0;j<f.num_params;j++) {
         user_spanks[i]->labels[j]=f.labels[j];
@@ -175,8 +175,9 @@ void user_display() {
 
 void user_fxn() {
   user_doing_trigger = false;
-  ui.clearDisplay();
-  ui.printText("User",0,0,2);
+  ui.newFxn("User");
+  // ui.clearDisplay();
+  // ui.printText("User",0,0,2);
   //user_string.put("UDU      ");
   //user_string.put("DUSDC     ");
   user_display();
@@ -187,8 +188,8 @@ void user_inc_dig_num_by(byte n) {
   user_dig_num = max(0, user_dig_num);
   if(user_dig_num > USER_MAXLEN) user_dig_num = 0;
   user_display();
-  Serial.print("User Inc Dig Num: ");
-  Serial.println(user_dig_num);
+  // Serial.print("User Inc Dig Num: ");
+  // Serial.println(user_dig_num);
 }
 
 void user_home() {
@@ -218,16 +219,16 @@ void user_set_params(char c) {
 void user_put_param_num(uint16_t pnum) {
   user_spanks[user_dig_num]->param_num=pnum;
   user_display();
-  Serial.println("User put param num: " + user_spanks[user_dig_num]->name);
-  Serial.println("!param_num: " + String(user_spanks[user_dig_num]->param_num));
+  // Serial.println("User put param num: " + user_spanks[user_dig_num]->name);
+  // Serial.println("!param_num: " + String(user_spanks[user_dig_num]->param_num));
 }
 
 void user_put_param(int param) {
   //SPANK_fxn g = *user_spanks[user_dig_num];
-  Serial.println("User put param: " + user_spanks[user_dig_num]->name);
-  Serial.println("param_num: " + String(user_spanks[user_dig_num]->param_num));
-  Serial.println("max: " + String(user_spanks[user_dig_num]->get_max()));
-  Serial.println("min: " + String(user_spanks[user_dig_num]->get_min()));
+  // Serial.println("User put param: " + user_spanks[user_dig_num]->name);
+  // Serial.println("param_num: " + String(user_spanks[user_dig_num]->param_num));
+  // Serial.println("max: " + String(user_spanks[user_dig_num]->get_max()));
+  // Serial.println("min: " + String(user_spanks[user_dig_num]->get_min()));
   user_spanks[user_dig_num]->put_param(param);
   ui.clearDisplay();
   ui.printText("User",0,0,2);
@@ -236,9 +237,9 @@ void user_put_param(int param) {
 
 void user_adjust_param(int encoder_val) {
   char c = user_ops[user_op_index];
-  Serial.print("User Adjust Param: ");
-  Serial.println(user_string.length());
-  Serial.println(user_dig_num);
+  // Serial.print("User Adjust Param: ");
+  // Serial.println(user_string.length());
+  // Serial.println(user_dig_num);
   user_op_index += encoder_val;
   if(user_op_index<0) user_op_index = user_ops.length()-1;
   if(user_op_index>=user_ops.length()) user_op_index = 0;
@@ -248,7 +249,7 @@ void user_adjust_param(int encoder_val) {
     user_string.append(String(c));
   }
   user_set_params(c);
-  Serial.println(user_spanks[user_dig_num]->get_label(0));
+  // Serial.println(user_spanks[user_dig_num]->get_label(0));
   user_display();
 }
 

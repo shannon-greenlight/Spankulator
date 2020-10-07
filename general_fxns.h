@@ -1,12 +1,20 @@
 // declarations for later
 String fxn_name(void);
+String list_fxns(void);
+void process_cmd(String);
 void process_keypress(void);
+void put_param_num(uint16_t pnum);
+void exe_fxn(void);
 
 // fxn definitions
 boolean isDifferent(float a, float b) {
 	int ai = int(100 * a);
 	int bi = int(100 * b);
 	return (ai != bi);
+}
+
+String enquote(String value) {
+  return "\""+value+"\"";
 }
 
 String toJSON(String key, String value) {

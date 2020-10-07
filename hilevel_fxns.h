@@ -1,3 +1,5 @@
+void set_encoder();
+
 FunctionPointer functionPointers[] = {up_fxn, dn_fxn, stretch_fxn, toggle_fxn, maytag_fxn, lfo_fxn, user_fxn, dvm_fxn, select_wifi_fxn, settings_fxn};
 int num_fxns = sizeof(functionPointers) / sizeof(functionPointers[0]);
 void exe_fxn() {
@@ -9,22 +11,55 @@ String fxn_name()
 {
   switch (fxn.get())
   {
-  case DVM_FXN:
-    return "DVM";
+  case UP_FXN:
+    return up_spanker.name;
+    break;
+  case DN_FXN:
+    return dn_spanker.name;
+    break;
+  case STRETCH_FXN:
+    return stretch_spanker.name;
+    break;
+  case TOGGLE_FXN:
+    return toggle_spanker.name;
+    break;
+  case MAYTAG_FXN:
+    return maytag_spanker.name;
+    break;
+  case LFO_FXN:
+    return lfo_spanker.name;
     break;
   case USER_FXN:
     return "User";
     break;
-  case LFO_FXN:
-    return "LFO";
+  case DVM_FXN:
+    return "DVM";
     break;
   case WIFI_FXN:
     return "WiFi";
     break;
+  case SETTINGS_FXN:
+    return "Settings";
+    break;
   default:
-    return the_spanker->name;
-    //return "Unknown - Fxn: " + String(fxn.get());
+    //return the_spanker->name;
+    return "Unknown - Fxn: " + String(fxn.get());
   }
+}
+
+String list_fxns() {
+  String out="\"fxns\" : [";
+  int fxn_memory = fxn.get();
+  for(int i=0;i<num_fxns;i++) {
+    fxn.put(i);
+    out += enquote(fxn_name());
+    // out += toJSON("Fxn_"+String(i),fxn_name());
+    if(i<num_fxns-1) out += ",";
+  }
+  out += "],";
+  fxn.put(fxn_memory);
+  // Serial.println(out);
+  return out;
 }
 
 // trigger
@@ -34,12 +69,6 @@ void do_trigger()
   //reset_trigger();
   switch (fxn.get())
   {
-  case LFO_FXN:
-    do_toggle();
-    digitalWrite(gate_out_pin, HIGH);
-    lfo_do_trigger();
-    digitalWrite(gate_out_pin, LOW);
-    break;
   case DVM_FXN:
     dvm_do_trigger();
     break;
@@ -59,7 +88,7 @@ void do_trigger()
 
 void test_trig()
 {
-  Serial.println("Testing trigger");
+  // Serial.println("Testing trigger");
 }
 
 void adjust_param(int encoder_val)
@@ -78,11 +107,14 @@ void adjust_param(int encoder_val)
   case USER_FXN:
     user_adjust_param(encoder_val);
     break;
+  case SETTINGS_FXN:
+    the_spanker->adjust_param(encoder_val, delta);
+    set_encoder();
+    break;
   default:
     the_spanker->adjust_param(encoder_val, delta);
     //Serial.println("Unknown adjust_param fxn: " + String(fxn.get()));
   }
-  //Serial.println("Changed val: "+String(the_param) + " Fxn: " + String(fxn.get()));
   e.setEncoderValue(0);
   last_encoder_val = encoder_val = 0;
   last_change_time = now;
@@ -97,8 +129,9 @@ uint16_t get_param(int p_num)
     break;
   case USER_FXN:
   case DVM_FXN:
-  case LFO_FXN:
-    return lfo_get_param();
+  //case LFO_FXN:
+    return 0;
+    //return lfo_get_param();
     break;
   default:
     return the_spanker->get_param(p_num);
@@ -120,13 +153,8 @@ byte get_num_params()
   case USER_FXN:
     return user_num_params;
     break;
-  case LFO_FXN:
-    return lfo_num_params;
-    break;
   default:
     return the_spanker->num_params;
-    // Serial.println("Unknown num_params fxn: " + String(fxn.get()));
-    // return 0;
   }
 }
 
@@ -140,9 +168,9 @@ String get_label(int i)
   case USER_FXN:
     return "User";
     break;
-  case LFO_FXN:
-    return "LFO";
-    break;
+  // case LFO_FXN:
+  //   return "LFO";
+  //   break;
   default:
     return the_spanker->get_label(i);
     // Serial.println("Unknown get_label fxn: " + String(fxn.get()));
@@ -166,30 +194,6 @@ void put_param(int val)
     break;
   default:
     the_spanker->put_param(val);
-    //Serial.println("Unknown put_param fxn: " + String(fxn.get()));
-  }
-}
-
-String get_selected_param()
-{
-  switch (fxn.get())
-  {
-  case WIFI_FXN:
-    return "WiFi";
-    break;
-  case DVM_FXN:
-    return "DVM";
-    break;
-  case USER_FXN:
-    return "Sequence";
-    break;
-  case LFO_FXN:
-    return "LFO";
-    break;
-  default:
-    return the_spanker->get_label(the_spanker->param_num);
-    // Serial.println("Unknown get_selected_param fxn: " + String(fxn.get()));
-    // return "?";
   }
 }
 
@@ -200,7 +204,6 @@ void inc_dig_num()
   case WIFI_FXN:
     wifi_inc_param_num_by(1);
     exe_fxn();
-    the_param = get_param(param_num);
     break;
   case USER_FXN:
     user_inc_dig_num_by(1);
@@ -224,7 +227,6 @@ void dec_dig_num()
   default:
     the_spanker->inc_dig_num_by(-1);
   }
-  //the_param = get_param(param_num);
 }
 
 void put_param_num(uint16_t pnum)
@@ -236,23 +238,16 @@ void put_param_num(uint16_t pnum)
     //user_end();
     break;
   case WIFI_FXN:
-    // wifi_inc_param_num_by(1);
-    // exe_fxn();
-    //param_num=pnum;
+    // do nothing
     break;
   case DVM_FXN:
-    // dvm_inc_param_num_by(1);
+    // dvm_put_param_num(pnum);
     //exe_fxn();
-    break;
-  case LFO_FXN:
-    // lfo_inc_param_num_by(1);
-    // exe_fxn();
     break;
   default:
     the_spanker->param_num=pnum;
     //Serial.println("Unknown put_param_num fxn: " + String(fxn.get()));
   }
-  //the_param = get_param(param_num);
 }
 
 void inc_param_num()
@@ -270,15 +265,10 @@ void inc_param_num()
     dvm_inc_param_num_by(1);
     //exe_fxn();
     break;
-  case LFO_FXN:
-    lfo_inc_param_num_by(1);
-    exe_fxn();
-    break;
   default:
     the_spanker->inc_param_num_by(1);
     //Serial.println("Unknown inc_param_num fxn: " + String(fxn.get()));
   }
-  //the_param = get_param(param_num);
 }
 
 void dec_param_num()
@@ -296,15 +286,10 @@ void dec_param_num()
     dvm_inc_param_num_by(-1);
     //exe_fxn();
     break;
-  case LFO_FXN:
-    lfo_inc_param_num_by(-1);
-    exe_fxn();
-    break;
   default:
     the_spanker->inc_param_num_by(-1);
     //Serial.println("Unknown dec_param_num fxn: " + String(fxn.get()));
   }
-  the_param = get_param(param_num);
 }
 
 void housekeep() {
@@ -322,35 +307,46 @@ void get_params(String arr[])
   switch (fxn.get())
   {
   case USER_FXN:
-    // arr[0]=toJSON("Sequence", user_string.get());
-    // arr[1]=toJSON("U", "- Add UP sput");
-    // arr[2]=toJSON("P", "- Add Peck");
     user_get_params(arr);
-    Serial.println(arr[7]);
-    //Serial.println(arr[1]);
     break;
   default:
     for (int i = 0; i < get_num_params(); i++)
     {
       arr[i] = toJSON(get_label(i), String(get_param(i)));
-      Serial.println(arr[i]);
     }
   }
-  //String arr[10];  // hopefully 10 will be enough
+}
+
+void set_encoder() {
+  switch(settings_get_encoder_type()) {
+    case 0: // bourns
+      e.msb_pin=3;
+      e.lsb_pin=2;
+      break;
+    case 1: // amazon
+      e.msb_pin=2;
+      e.lsb_pin=3;
+      break;
+  }
+
+  // #define ENCODER_MSB 2
+  // #define ENCODER_LSB 3
+  // e.msb_pin=ENCODER_MSB;
+  // e.lsb_pin=ENCODER_LSB;
+
+  // now set up interrupts
+  attachInterrupt(digitalPinToInterrupt(e.lsb_pin), intFxnB, RISING);
+  attachInterrupt(digitalPinToInterrupt(e.msb_pin), intFxnA, RISING);
+
 }
 
 void new_fxn()
 {
-  // select_wifi_screen = param_num = numSsid = 0;
-  //if(wifi_status == WL_CONNECTED) select_wifi_screen = 4;
-  select_wifi_screen = (wifi_status == WL_CONNECTED) ? 4 : 0;
-
-  param_num = numSsid = 0;
   triggered = doing_trigger = user_doing_trigger = false;
   reset_trigger();
   event_pending = false;
   exe_fxn();
-  the_param = get_param(param_num);
+  wifi_new_fxn();
 }
 
 //boolean monitor = false;
@@ -423,8 +419,8 @@ void heartbeat()
 
 void process_keypress()
 {
-  Serial.print("Processing keypress: ");
-  Serial.println(char(keypress));
+  // Serial.print("Processing keypress: ");
+  // Serial.println(char(keypress));
   switch (keypress)
   {
   case 62: // >
@@ -437,17 +433,16 @@ void process_keypress()
     fxn.inc(-1);
     new_fxn();
     break;
+  case 102: // f
+    new_fxn();
+    break;
   case 42: // *
     repeat_on.toggle();
     digitalWrite(repeat_led_pin, repeat_on.get());
-    // Serial.println("SSID: " + wifi_ssid.get() + " Scrn# " + String(select_wifi_screen));
-    // wifi_ssid.test();
-    //wifi_password.test();
-    //wifi_active.test();
     break;
   case 33: // !
     triggered = !triggered;
-    Serial.println("Triggered: " + String(triggered) + " Repeat: " + String(repeat_on.get()));
+    // Serial.println("Triggered: " + String(triggered) + " Repeat: " + String(repeat_on.get()));
     //delay(250);
     break;
   case 65: // up arrow in esc mode A
@@ -493,6 +488,44 @@ void process_keypress()
   //Serial.println("Esc Mode: "+String(esc_mode));
 }
 
+void process_cmd(String in_str) {
+  char cmd = in_str.charAt(0);
+
+  if(cmd=='p') {
+    put_param_num(in_str.substring(1).toInt());
+    exe_fxn();
+  }
+
+  if(cmd=='f') {
+    fxn.put(in_str.substring(1).toInt());
+  }
+
+  if(fxn.get()==USER_FXN && !esc_mode) {
+    user_update_user_string(cmd, in_str);
+    // if(cmd>64 && cmd<91) {
+    //   user_string.put(in_str);
+    //   user_display();
+    // }
+  }
+
+  if(cmd>47 && cmd<58) {
+    //int c = in_str.toInt();
+    // Serial.println("Number received: "+in_str);
+    put_param(in_str.toInt());
+  }
+
+  if(String(cmd) != "\n" && cmd != 112) {
+    if(String(cmd)=="%") {
+      keypress = 27;
+    } else {
+      keypress = cmd;
+    }
+    
+    process_keypress();
+  }
+
+}
+
 void fxn_begin() {
   fxn.max = num_fxns - 1;
   //fxn.max=7;
@@ -511,6 +544,39 @@ void fxn_begin() {
 
   digitalWrite(repeat_led_pin, repeat_on.get());
 
-  the_param = get_param(param_num);
-
 }
+
+void heartbeat_begin() {
+  MyTimer5.begin(5);  // 5 times a sec
+
+  // define the interrupt callback function
+  MyTimer5.attachInterrupt(heartbeat);
+
+  // start the timer
+  MyTimer5.start();
+}
+
+void begin_all() {
+  // Start Serial
+  Serial.begin(9600);
+  //delay(2000);
+  //while (! Serial);
+
+  heartbeat_begin();
+  ui.begin(face1);
+  up_begin();
+  dn_begin();
+  stretch_begin();
+  toggle_begin();
+  maytag_begin();
+  lfo_begin();
+  user_begin();
+  dvm_begin();
+  wifi_begin();
+  settings_begin();
+
+  hardware_begin();  
+  fxn_begin();
+}
+
+

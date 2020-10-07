@@ -1,12 +1,27 @@
 EEPROM_Int dvm_mode = EEPROM_Int(0, 1); // 0-DC 1=AC
 byte dvm_ctr=0;
 double meas_buf[10];
+String dvm_meas="";
+
+String dvm_params_toJSON() {
+    String out = "";
+    out += "{ ";
+    out += toJSON("label","Mode");
+    out += ", ";
+    out += toJSON("type","radio");
+    out += ", ";
+    out += toJSON("values","DC,AC");
+    out += ", ";
+    out += toJSON("value",dvm_mode.get() ? "AC" : "DC");
+    out += " }";
+    return "["+out+"]";
+}
 
 void dvm_inc_param_num_by(int val) {
     dvm_mode.inc(val);
     int mode = dvm_mode.get();
-    Serial.print("Mode: :");
-    Serial.println(mode);
+    // Serial.print("Mode: :");
+    // Serial.println(mode);
     if(mode<0) {
         dvm_mode.put(1);
     } else {
@@ -53,6 +68,7 @@ void dvm_do_meas(int ival) {
                 break;
         }
         //Serial.println(buf);
+        dvm_meas = String(buf);
         ui.printLine(String(buf),20,4);
         dvm_ctr=0;
     }
@@ -60,7 +76,7 @@ void dvm_do_meas(int ival) {
 
 void dvm_do_trigger() {
     byte pin = dvm_mode.get()==0 ? ain2_pin : ain3_pin;
-    Serial.println("Reading pin: "+String(pin));
+    // Serial.println("Reading pin: "+String(pin));
     //String format = "%"+String(digits)+"d";
     int ival = 512-analogRead(pin);
     // delay(1);
@@ -72,7 +88,13 @@ void dvm_do_trigger() {
         String ovl = ival==512 ? "++++" : "----";
         ui.printLine(ovl,20,4);
     } else {
-        dvm_do_meas(ival);
+        if(repeat_on.get()) {
+            dvm_do_meas(ival);
+        } else {
+            for(int i=0;i<10;i++) {
+                dvm_do_meas(ival);
+            }
+        }
     }
 }
 
@@ -80,9 +102,9 @@ void dvm_fxn() {
   ui.clearDisplay();
   //ui.printText("DVM",0,0,2);
   dvm_inc_param_num_by(0);
-  triggered = doing_trigger = true;
+  //triggered = doing_trigger = true;
   reset_trigger();
-  disable_trigger(true);
+  //disable_trigger(true);
 }
 
 void dvm_begin() {

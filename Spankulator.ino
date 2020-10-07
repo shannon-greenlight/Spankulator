@@ -1,3 +1,4 @@
+#define VERSION_NUM "v2.11"
 #define OLD_STYLE false
 typedef void(*FunctionPointer)();
 
@@ -6,29 +7,30 @@ typedef void(*FunctionPointer)();
 #include <stdlib.h>
 #include <Wire.h>           // For I2C comm, but needed for not getting compile error
 #include <Timer5.h>
-#include <TerminalVT100.h>
-#include <RotaryEncoder.h>
 #include <Adafruit_FRAM_I2C.h>
 #include <Greenface_EEPROM.h>
 #include <EEPROM_Arr16.h>
 #include <EEPROM_Int.h>
 #include <EEPROM_Bool.h>
 #include <EEPROM_String.h>
-#include <OLED_Display.h>
 #include <WiFiNINA.h>
 #include <WIFI_Util.h>
+#include <arduino_secrets.h>
 
-int param_num = 0;
+//#include "greenface_libs\TerminalVT100\TerminalVT100.h"
+#include <TerminalVT100.h>
+#include <RotaryEncoder.h>
+// #include "greenface_libs\RotaryEncoder\RotaryEncoder.h"
+#include "SPANK_ui.h"
+
 int volatile keypress = 0;
 boolean esc_mode = false;
 boolean triggered = false;
 boolean doing_trigger=false;
 int last_encoder_val = 0;
 unsigned long last_change_time = 0;
-int the_param = 0;
 float the_delay = 0;
 bool toggle_state = false;
-boolean going_up = true;
 int lines[] = {LINE_1, LINE_2, LINE_3};
 int adj;
 int init_adj;
@@ -46,42 +48,22 @@ SPANK_fxn *the_spanker;
 
 // display screen
 ArducamSSD1306 display(OLED_RESET);
-OLED_Display ui(&display);
+SPANK_ui ui(&display);
 
 int Greenface_EEPROM::eeprom_offset = 16;
 EEPROM_Int fxn = EEPROM_Int(0, 1000); // set max to real max when num_fxns has been defined
 EEPROM_Bool repeat_on = EEPROM_Bool();  // sizeof fxn val
-EEPROM_String wifi_password(64);
-EEPROM_String wifi_ssid(64);
-EEPROM_Bool wifi_active = EEPROM_Bool();  // sizeof fxn val
 
 #define UP_FXN 0
 #define DN_FXN 1
 #define STRETCH_FXN 2
-#define TOGGGLE_FXN 3
+#define TOGGLE_FXN 3
 #define MAYTAG_FXN 4
 #define LFO_FXN 5
 #define USER_FXN 6
 #define DVM_FXN 7
 #define WIFI_FXN 8
-
-// #include "general_fxns.h"
-int check_param(int the_param) {
-    Serial.println("Param OK param#: "+ String(the_spanker->param_num));
-    switch(the_spanker->param_num) {
-      case LONGEST_PULSE:
-        the_param = max(the_param,the_spanker->get_param(SHORTEST_PULSE)+1);
-        break;
-      case SHORTEST_PULSE:
-        the_param = min(the_param,the_spanker->get_param(LONGEST_PULSE)-1);
-        break;
-
-    }
-    return the_param;
-}
-
-void put_param_num(uint16_t pnum);
-void exe_fxn(void);
+#define SETTINGS_FXN 9
 
 #include "up_spanker.h"
 #include "dn_spanker.h"
@@ -100,58 +82,21 @@ void exe_fxn(void);
 
 void setup(void)
 {
-  // Start Serial
-  Serial.begin(9600);
-  // now set up interrupts
-  attachInterrupt(digitalPinToInterrupt(2), intFxnB, RISING);
-  attachInterrupt(digitalPinToInterrupt(3), intFxnA, RISING);
+  begin_all();
 
-  MyTimer5.begin(5);  // 5 times a sec
+  set_encoder();
 
-  // define the interrupt callback function
-  MyTimer5.attachInterrupt(heartbeat);
+  // connect if wifi is active
+  wifi_attempt_connect(true);
 
-  // start the timer
-  MyTimer5.start();
+  ui.greet(VERSION_NUM);
 
-  delay(2000);
-  //while (! Serial);
-  
-  ui.begin(face1);
-
-  up_begin();
-  dn_begin();
-  stretch_begin();
-  toggle_begin();
-  maytag_begin();
-
-  lfo_begin();
-  user_begin();
-  dvm_begin();
-  wifi_begin();
-
-  hardware_begin();  
-  fxn_begin();
-
-  // check for the WiFi module:
-  if (false) { // true forces WiFi
-    wifi_ssid.put("Your WiFi");
-    wifi_password.put("Your Password");
-    wifi_active.set();
-  } else {
-    //wifi_active.reset();
+  while(keypress==0)   {
+    if(wifi_active.get()) {
+      do_server();
+    }
   }
-  if (wifi_active.get() && wifi_status != WL_CONNECTED) {
-    wifi_connect();
-    delay(2000);
-  }
-
-  ui.greet();
-  ui.clearDisplay();  
-  ui.printText("The Spankulator",0,0,1);
-  ui.printText("_______________",0,8,1);
-  ui.printText("push any key",0,16,1);
-  while(all_buttons_up())   {}
+  // while(all_buttons_up())   {}
 
 
   //fxn.put(0);

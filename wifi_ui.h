@@ -3,10 +3,15 @@
 #include <stdlib.h>
 #include <WiFiNINA.h>
 
+EEPROM_String wifi_password(64);
+EEPROM_String wifi_ssid(64);
+EEPROM_Bool wifi_active = EEPROM_Bool();  // sizeof fxn val
+
+int wifi_param = 0;
+int wifi_param_num = 0;
 void get_params(String arr[]);  // pre-declare
 byte get_num_params();
 String get_label(int i);
-String get_selected_param();
 void put_param(int);
 
 uint8_t select_wifi_screen = 0;
@@ -18,7 +23,7 @@ void wifi_connected(void);
 
 void print_wifi_password() {
   int pos,too;
-  pos = max(0,param_num - 9);
+  pos = max(0,wifi_param_num - 9);
   too = min(pos+10, wifi_password.length());
   ui.printLine(wifi_password.get().substring(pos,too),lines[1],2);
 }
@@ -28,22 +33,24 @@ uint16_t wifi_get_param(int p_num) {
 }
 
 void wifi_inc_param_num_by(int val) {
-  param_num+= val;
-  if(param_num>wifi_num_params-1) param_num = 0;
-  if(param_num<0) param_num = wifi_num_params;
+  wifi_param_num+= val;
+  if(wifi_param_num>wifi_num_params-1) wifi_param_num = 0;
+  if(wifi_param_num<0) wifi_param_num = wifi_num_params;
+  wifi_param = wifi_get_param(wifi_param_num);  // ??? not sure if we need to do this
+  wifi_param = 'a';
   //print_wifi_password();
-  //the_param = wifi_get_param(param_num);
-  Serial.println("Increment Param #: " + String(param_num) + " Num params: " + String(wifi_num_params) + " The param: " + char(the_param));
+  //wifi_param = wifi_get_param(wifi_param_num);
+  // Serial.println("Increment Param #: " + String(wifi_param_num) + " Num params: " + String(wifi_num_params) + " The param: " + char(wifi_param));
 }
 
 void wifi_adjust_param(int e) {
     if(select_wifi_screen==2) {
-      the_param += e;
-      the_param = max(0x21,the_param);
-      the_param = min(0x7f,the_param);
-      wifi_password.putCharAt(char(the_param), param_num);
+      wifi_param += e;
+      wifi_param = max(0x21,wifi_param);
+      wifi_param = min(0x7f,wifi_param);
+      wifi_password.putCharAt(char(wifi_param), wifi_param_num);
       print_wifi_password();
-      Serial.println("Param: "+String(the_param)+ " Param# "+ String(param_num));
+      // Serial.println("Param: "+String(wifi_param)+ " Param# "+ String(wifi_param_num));
     }
 }
 
@@ -67,51 +74,51 @@ void wifi_display_networks() {
     } else {
       // print the list of networks seen:
       ui.printText("Select:",0,0,2);
-      Serial.print("number of available networks: ");
-      Serial.println(numSsid);
-      Serial.println();
+      // Serial.print("number of available networks: ");
+      // Serial.println(numSsid);
+      // Serial.println();
     }
   }
   for (int thisNet = 0; thisNet < numSsid; thisNet++)
   {
-      Serial.print(thisNet + 1);
-      Serial.print(") ");
-      Serial.print("Signal: ");
-      Serial.print(WiFi.RSSI(thisNet));
-      Serial.print(" dBm");
-      Serial.print("\tChannel: ");
-      Serial.print(WiFi.channel(thisNet));
+      // Serial.print(thisNet + 1);
+      // Serial.print(") ");
+      // Serial.print("Signal: ");
+      // Serial.print(WiFi.RSSI(thisNet));
+      // Serial.print(" dBm");
+      // Serial.print("\tChannel: ");
+      // Serial.print(WiFi.channel(thisNet));
       byte bssid[6];
-      Serial.print("\t\tBSSID: ");
+      // Serial.print("\t\tBSSID: ");
       printMacAddress(WiFi.BSSID(thisNet, bssid));
-      Serial.print("\tEncryption: ");
+      // Serial.print("\tEncryption: ");
       printEncryptionType(WiFi.encryptionType(thisNet));
-      Serial.print("\t\tSSID: ");
-      Serial.println(WiFi.SSID(thisNet));
-      Serial.flush();
+      // Serial.print("\t\tSSID: ");
+      // Serial.println(WiFi.SSID(thisNet));
+      // Serial.flush();
   }
   // print the network number and name for each network found:
-  Serial.println("Num params: "+String(wifi_num_params)+ "  Param# "+ String(param_num));
+  // Serial.println("Num params: "+String(wifi_num_params)+ "  Param# "+ String(wifi_param_num));
   ui.fill(BLACK, lines[0]);
-  // ui.hiliteLine(lines[min(2,param_num)]);
-  ui.hiliteLine(min(2,param_num));
-  int start = max(0,param_num-2);
-  int end = max(2,param_num);
+  // ui.hiliteLine(lines[min(2,wifi_param_num)]);
+  ui.hiliteLine(min(2,wifi_param_num));
+  int start = max(0,wifi_param_num-2);
+  int end = max(2,wifi_param_num);
   int lineNum = 0;
   for (int i = start; i <= end; i++) {
-    //int thisNet = i + param_num/3;
+    //int thisNet = i + wifi_param_num/3;
     temps = getSsid(i);
-    Serial.println(String(i) + ". " + temps);
+    // Serial.println(String(i) + ". " + temps);
     ui.printLine(temps,lines[lineNum++],1);
   }
-  // ui.hiliteLine(lines[param_num%3]);
-  // Serial.println("Param num: "+String(lines[param_num%3]));
+  // ui.hiliteLine(lines[wifi_param_num%3]);
+  // Serial.println("Param num: "+String(lines[wifi_param_num%3]));
 }
 
 void wifi_set_ssid() {
-  Serial.println("Set SSID: "+String(param_num));
-  wifi_ssid.put(getSsid(param_num,false));
-  String enc = getEnc(param_num);
+  // Serial.println("Set SSID: "+String(wifi_param_num));
+  wifi_ssid.put(getSsid(wifi_param_num,false));
+  String enc = getEnc(wifi_param_num);
   if(enc=="None") {
     select_wifi_screen++;
     select_wifi_screen++;
@@ -121,9 +128,9 @@ void wifi_set_ssid() {
     wifi_password.put("a");
     ui.printText("Password",0,0,2);  
 
-    param_num=0;
+    wifi_param_num=0;
     wifi_num_params = 64;  // max num chars for wpa2 password
-    the_param = 'a';
+    wifi_param = 'a';
 
     ui.printLine("For: " + wifi_ssid.get(),lines[0],1);
     ui.printLine("-",lines[2],2);
@@ -134,18 +141,18 @@ void wifi_set_ssid() {
 }
 
 void enter_wifi_password() {
-  Serial.println("Entering password for: "+wifi_ssid.get());
+  // Serial.println("Entering password for: "+wifi_ssid.get());
   String prefix = "";
-  if(param_num>wifi_password.length()) param_num = wifi_password.length();
-  if(wifi_password.length()<=param_num) wifi_password.append("a");
+  if(wifi_param_num>wifi_password.length()) wifi_param_num = wifi_password.length();
+  if(wifi_password.length()<=wifi_param_num) wifi_password.append("a");
 
   // backspace removes chars
-  if(wifi_password.length()-1>param_num) {
-    wifi_password.removeCharAt(param_num+1);
+  if(wifi_password.length()-1>wifi_param_num) {
+    wifi_password.removeCharAt(wifi_param_num+1);
     ui.printLine("          ",lines[1],2);
   }
   print_wifi_password();
-  for(int i=0;i<min(9,param_num);i++) {
+  for(int i=0;i<min(9,wifi_param_num);i++) {
     prefix += " ";
   }
   ui.fill(BLACK, lines[2]);
@@ -165,7 +172,7 @@ void wifi_connect() {
   pass = wifi_password.get();
   ssid = wifi_ssid.get();
   //Serial.println("Connecting to: "+wifi_ssid.get() + " Password: " + wifi_password.get());
-  Serial.println("Connecting to: "+wifi_ssid.get());
+  // Serial.println("Connecting to: "+wifi_ssid.get());
   ui.clearDisplay();
   ui.printText(wifi_ssid.get(),0,0,2);  
   ui.printLine("Status: ",lines[0],1);
@@ -185,15 +192,73 @@ void wifi_connect() {
   }
 }
 
+void wifi_attempt_connect(boolean force) {
+  if (force) { // true forces WiFi
+    wifi_ssid.put(SECRET_SSID);
+    wifi_password.put(SECRET_PASS);
+    wifi_active.set();
+  } else {
+    //wifi_active.reset();
+  }
+  if (wifi_active.get() && wifi_status != WL_CONNECTED) {
+    wifi_connect();
+    delay(2000);
+  }
+}
+
 void wifi_connected() {
   wifi_active.set();
-  Serial.println("Connected to: "+wifi_ssid.get());
+  // Serial.println("Connected to: "+wifi_ssid.get());
   ui.clearDisplay();
   ui.printLine("Status: " + getConnectionStatus(wifi_status),lines[0],1);
   ui.printText(wifi_ssid.get(),0,0,2);  
   ui.printLine("IP: " + IpAddress2String(WiFi.localIP()),lines[1],1);
   //ui.printLine(WiFi.localIP(),lines[1],1);
   ui.printLine("Signal: " + String(WiFi.RSSI()) + " dBm",lines[2],1);
+}
+
+String wifi_params_toJSON() {
+    String out = "";
+    out += "{ ";
+    out += toJSON("label","Connected to: ");
+    out += ", ";
+    out += toJSON("type","text");
+    out += ", ";
+    out += toJSON("value",String(wifi_ssid.get()));
+    out += ", ";
+    out += toJSON("selected","false");
+    out += " }";
+    out += ",";
+    out += "{ ";
+    out += toJSON("label","Status");
+    out += ", ";
+    out += toJSON("type","text");
+    out += ", ";
+    out += toJSON("value",getConnectionStatus(wifi_status) );
+    out += ", ";
+    out += toJSON("selected","false");
+    out += " }";
+    out += ",";
+    out += "{ ";
+    out += toJSON("label","IP");
+    out += ", ";
+    out += toJSON("type","text");
+    out += ", ";
+    out += toJSON("value",IpAddress2String(WiFi.localIP()) );
+    out += ", ";
+    out += toJSON("selected","false");
+    out += " }";
+    out += ",";
+    out += "{ ";
+    out += toJSON("label","Signal");
+    out += ", ";
+    out += toJSON("type","text");
+    out += ", ";
+    out += toJSON("value",String(WiFi.RSSI()) + " dBm" );
+    out += ", ";
+    out += toJSON("selected","false");
+    out += " }";
+    return "["+out+"]";
 }
 
 // trigger action 
@@ -224,6 +289,13 @@ void select_wifi_fxn() {
   }
 }
 
+void wifi_new_fxn() {
+  select_wifi_screen = (wifi_status == WL_CONNECTED) ? 4 : 0;
+
+  wifi_param_num = numSsid = 0;
+  wifi_param = wifi_get_param(wifi_param_num);
+}
+
 void wifi_begin() {
   wifi_password.begin(false);
   wifi_ssid.begin(false);
@@ -231,33 +303,81 @@ void wifi_begin() {
   wifi_password.xfer();
   wifi_ssid.xfer();
   wifi_active.xfer();
+  // wifi_param = wifi_get_param(wifi_param_num);
 }
 
 String params_toJSON() {
   switch (fxn.get())
   {
-  case LFO_FXN:
-    return lfo_params_toJSON();
+  // case LFO_FXN:
+  //   return lfo_params_toJSON();
+  //   break;
+  case DVM_FXN:
+    return dvm_params_toJSON();
     break;
   case USER_FXN:
     // Serial.println("User params to JSON!");
     return user_params_toJSON();
+    break;
+  case WIFI_FXN:
+    return wifi_params_toJSON();
     break;
   default:
     return the_spanker->params_toJSON();
   }
 }
 
+void send_data_to_client(WiFiClient client, char cmd) {
+  if(cmd=='[') return;
+  client.print(toJSON("fxn",fxn_name()));
+  client.print(",");
+  if(cmd==' ' || cmd=='f' || cmd=='+' || cmd=='-') client.print(list_fxns());
+  client.print(toJSON("repeat_on",repeat_on.get()?"ON":"OFF"));
+  client.print(",");
+  client.print(toJSON("triggered",triggered?"ON":"OFF"));            
+  client.print(",");
+  client.print(toJSON("cmd",String(cmd)));
+  client.print(",");            
+
+  if(fxn_name()=="User") {
+    // Serial.println("Sending: "+fxn_name());
+    client.print("\"sequence\" : {");            
+    client.print(toJSON("label","Sequence"));            
+    client.print(",");
+    client.print(toJSON("type","sequence"));            
+    client.print(",");
+    client.print(toJSON("value",user_string.get()));            
+    client.print(",");
+    client.print(toJSON("legal_values",user_ops));            
+    client.print(",");
+    client.print(toJSON("dig_num",String(user_dig_num)));            
+    client.print(",");
+    client.print(toJSON("selected","true"));            
+    client.print("},");
+  }
+
+  if(fxn_name()=="DVM") {
+    client.print(toJSON("meas",dvm_meas));            
+    client.print(",");
+  }
+
+  client.print("\"params\" : [");            
+  // fix this for other fxns
+  client.print(params_toJSON());
+  client.print("]");
+}
+
 void do_server() {
+  char cmd;
   WiFiClient client = server.available();   // listen for incoming clients
 
   if (client) {                             // if you get a client,
-    Serial.println("new client");           // print a message out the serial port
+    // Serial.println("new client");           // print a message out the serial port
     String currentLine = "";                // make a String to hold incoming data from the client
     while (client.connected()) {            // loop while the client's connected
       if (client.available()) {             // if there's bytes to read from the client,
         char c = client.read();             // read a byte, then
-        Serial.write(c);                    // print it out the serial monitor
+        //Serial.write(c);                    // print it out the serial monitor
         if (c == '\n') {                    // if the byte is a newline character
 
           // if the current line is blank, you got two newline characters in a row.
@@ -272,36 +392,7 @@ void do_server() {
             client.println();
             
             client.print("{");
-            client.print(toJSON("fxn",fxn_name()));
-            client.print(",");
-            client.print(toJSON("repeat_on",repeat_on.get()?"ON":"OFF"));
-            client.print(",");
-            client.print(toJSON("triggered",triggered?"ON":"OFF"));            
-            client.print(",");
-            // client.print(toJSON("selected",get_selected_param()));
-            // client.print(",");            
-
-            if(fxn_name()=="User") {
-              Serial.println("Sending: "+fxn_name());
-              client.print("\"sequence\" : {");            
-              client.print(toJSON("label","Sequence"));            
-              client.print(",");
-              client.print(toJSON("type","sequence"));            
-              client.print(",");
-              client.print(toJSON("value",user_string.get()));            
-              client.print(",");
-              client.print(toJSON("legal_values",user_ops));            
-              client.print(",");
-              client.print(toJSON("dig_num",String(user_dig_num)));            
-              client.print(",");
-              client.print(toJSON("selected","true"));            
-              client.print("},");
-            }
-
-            client.print("\"params\" : [");            
-            // fix this for other fxns
-            client.print(params_toJSON());
-            client.print("]");
+            send_data_to_client(client,cmd);
             client.print("}");
 
             // The HTTP response ends with another blank line:
@@ -310,8 +401,8 @@ void do_server() {
             break;
           } else {    // if you got a newline, then clear currentLine:
             if(strstr(currentLine.c_str(),"POST")) {
-              char cmd = currentLine[6];
-              Serial.println("Command: "+String(cmd));
+              // cmd = currentLine[6];
+              // Serial.println("Command: "+String(cmd));
               //int c = cmd;
               String in_str="";
               int i=0;
@@ -321,36 +412,10 @@ void do_server() {
                 in_str+=inchar;
                 i++;
               } while (String(inchar)!=" " && i<20);
-              Serial.println("Receiving: "+in_str);
+              // Serial.println("Receiving: "+in_str);
 
-              if(cmd==112) {
-                put_param_num(in_str.substring(1).toInt());
-                //exe_fxn();
-              }
+              process_cmd(in_str);
 
-              if(fxn.get()==USER_FXN && !esc_mode) {
-                user_update_user_string(cmd, in_str);
-                // if(cmd>64 && cmd<91) {
-                //   user_string.put(in_str);
-                //   user_display();
-                // }
-              }
-
-              if(cmd>47 && cmd<58) {
-                //int c = in_str.toInt();
-                Serial.println("Number received: "+in_str);
-                put_param(in_str.toInt());
-              }
-
-              if(String(cmd) != "\n" && cmd != 112) {
-                if(String(cmd)=="%") {
-                  keypress = 27;
-                } else {
-                  keypress = cmd;
-                }
-                
-                process_keypress();
-              }
 
             }
             currentLine = "";
@@ -365,7 +430,7 @@ void do_server() {
 
     // close the connection:
     client.stop();
-    Serial.println("client disonnected");
+    // Serial.println("client disonnected");
   }
   if(!triggered && fxn.get() != LFO_FXN && wifi_status==WL_CONNECTED) ui.printWiFiBars(WiFi.RSSI());
 }

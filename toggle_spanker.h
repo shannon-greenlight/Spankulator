@@ -10,8 +10,8 @@ void toggle_trigger() {
   triggered=true;
   doing_trigger=true;
   int delay = toggle_spanker.get_param(0);
-  Serial.print("Toggle Trigger, delay: ");
-  Serial.println(delay);
+  // Serial.print("Toggle Trigger, delay: ");
+  // Serial.println(delay);
   int aval1 = delay%1023;
   write_dac(aval1);
   do_delay(delay);

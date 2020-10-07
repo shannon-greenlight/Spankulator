@@ -1,4 +1,4 @@
-uint16_t _up_params[] = {10, 11, 12, 13, 14};
+uint16_t _up_params[] = {100, 10, 10, 0, 100};
 uint16_t _up_mins[] = {10, 10, 2, 0, 0};
 uint16_t _up_maxs[] = {9999, 9998, 99, 99, 9999};
 uint16_t *up_stuff[] = {_up_params, _up_mins, _up_maxs};
@@ -6,7 +6,7 @@ String up_labels[] = {"Longest Pulse: ","Shortest Pulse: ", "Num Pulses: ", "Ran
 SPANK_fxn up_spanker("Up", up_labels, up_stuff, sizeof(_up_params)/sizeof(_up_params[0]), &ui);
 
 void up_trigger() {
-  Serial.print("Doing up trigger at: "+String(millis())+" -- ");
+  // Serial.print("Doing up trigger at: "+String(millis())+" -- ");
   // Serial.println(the_spanker->name);
   //if(f==NULL) f = up_spanker;
   float longest_pulse = float(the_spanker->get_param(LONGEST_PULSE));
@@ -34,10 +34,10 @@ void up_fxn() {
 }
 
 void up_begin() {
-  Serial.println("UP Begin!");
+  // Serial.println("UP Begin!");
   up_spanker.begin();
   up_spanker.trigger_fxn = up_trigger;
-  up_spanker.check_params_fxn = check_param;
+  up_spanker.check_params = true;
 }
 
 

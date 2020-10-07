@@ -1,23 +1,21 @@
 #include "Arduino.h"
 #include <TerminalVT100.h>
 #include <Greenface_EEPROM.h>
-#include <EEPROM_Arr16.h>
+#include "SPANK_ui.h"
 
 #include "SPANK_fxn.h"
 
-SPANK_fxn::SPANK_fxn(String _name,String *_labels, uint16_t ** _params, uint16_t _num_params, OLED_Display *_ui):params(*_params,_num_params) {
+SPANK_fxn::SPANK_fxn(String _name,String *_labels, uint16_t ** _params, uint16_t _num_params, SPANK_ui *_ui):params(*_params,_num_params) {
     name = _name;
     labels = _labels;
     ui = _ui;
     num_params = _num_params;
-    //num_params = sizeof(labels)/sizeof(labels[0]);
     param_num = 0;
     digit_num = 0;
     params = EEPROM_Arr16(_params[0], _num_params);
     mins = _params[1];
     maxs = _params[2];
     display_fxn = &SPANK_fxn::default_display;
-    //check_params_fxn = default_check_params;
     ui_lines[0]=LINE_1;
     ui_lines[1]=LINE_2;
     ui_lines[2]=LINE_3;
@@ -26,9 +24,9 @@ SPANK_fxn::SPANK_fxn(String _name,String *_labels, uint16_t ** _params, uint16_t
 void SPANK_fxn::begin() {
     params.begin(false);
     params.xfer();
-    Serial.println("");
-    Serial.print(name + " Beginning "+labels[0]);
-    Serial.println(params.get(0));
+    // Serial.println("");
+    // Serial.print(name + " Beginning "+labels[0]);
+    // Serial.println(params.get(0));
 }
 
 int SPANK_fxn::offset() {
@@ -56,35 +54,32 @@ void SPANK_fxn::adjust_param(int e, unsigned long delta) {
     int multiplier = 1;
     uint8_t ndigs = get_num_digits(param_num);
     int dig = (ndigs-digit_num)-1;
-    Serial.println("mult: "+String(dig));
+    // Serial.println("mult: "+String(dig));
     multiplier = pow(10,dig);
 
-    // if(get_max()>10) {
-    //     if(delta < 350 && get_max()>100) {
-    //     multiplier = 100;
-    //     } else {
-    //         if(delta<500) {
-    //             multiplier = 10;
-    //         }
-    //     }
-    // }
-    //Serial.println("Delta: "+String(delta));
-    //Serial.println("Multiplier: "+String(multiplier));
-    //Serial.println("Encoder: "+String(digitalRead(2)));
-    // if(the_param>1000) the_param = 0;
-    // if(the_param<0) the_param = 1000;
-    //the_param = max(0,the_param);
-    //the_param = min(1000,the_param);
-
     the_param += e*multiplier;
-    // if(check_params_fxn) the_param=check_params_fxn(the_param);
 
     put_param(the_param);
 }
 
+int SPANK_fxn::check_param(int param) {
+    // Serial.println("Param OK param#: "+ String(param_num));
+    switch(param_num) {
+      case LONGEST_PULSE:
+        param = max(param,get_param(SHORTEST_PULSE)+1);
+        break;
+      case SHORTEST_PULSE:
+        param = min(param,get_param(LONGEST_PULSE)-1);
+        break;
+
+    }
+    return param;
+}
+
+// TODO fix data type to allow negative numbers
 void SPANK_fxn::put_param(uint16_t val ) {
-    if(check_params_fxn) val=check_params_fxn(val);
-    int16_t val1 = val;    // deals with 'negative' numbers
+    if(check_params) val=check_param(val);
+    int16_t val1 = val;    // deals with 'negative' numbers 
     // Serial.print("Put param: ");
     // Serial.println(val1);
     if(val>get_max()) val = get_min();
@@ -188,9 +183,10 @@ String SPANK_fxn::params_toJSON() {
 
 
 void SPANK_fxn::default_display() {
-  Serial.println("Name: "+name);
-  (*ui).clearDisplay();
-  (*ui).printLine(name,0,2);
+//   Serial.println("Name: "+name);
+//   (*ui).clearDisplay();
+//   (*ui).printLine(name,0,2);
+  (*ui).newFxn(name);
   printParams();
 }
 
@@ -208,7 +204,7 @@ void SPANK_fxn::copy_to(SPANK_fxn &target) {
     target.name=name;
     target.trigger_fxn = trigger_fxn;
     target.num_params=num_params;
-    Serial.println("Copying: "+target.name);
+    // Serial.println("Copying: "+target.name);
 }
 
 void SPANK_fxn::debug() {
@@ -232,32 +228,3 @@ String SPANK_fxn::calc_format(uint8_t ndigs) {
         // const char* format = fmt.c_str();
         // return format;
 }
-
-
-// void SPANK_fxn::print_string() {
-//     int pos,too;
-//     int the_param = get_param();
-//     pos = max(0,param_num - 9);
-//     too = min(pos+10, the_param.length());
-//     ui.printLine(the_param.substring(pos,too),lines[1],2);
-// }
-
-// void SPANK_fxn::enter_string(uint16_t encoder_val) {
-//     int the_param = get_param();
-//     the_param += encoder_val;
-//     the_param = max(0x21,the_param);
-//     the_param = min(0x7f,the_param);
-//     putCharAt(char(the_param), param_num);
-//     print_wifi_password();
-//     Serial.println("Param: "+String(the_param)+ " Param# "+ String(param_num));
-// }
-// void SPANK_fxn::default_check_params() {
-//     Serial.println("Params OK");
-// }
-
-
-
-
-
-
-

@@ -22,8 +22,8 @@ void stretch_trigger() {
   int pulse_len = stretch_spanker.get_param(0);
   int delay = stretch_spanker.get_param(1);
   int num_pulses = stretch_spanker.get_param(2);
-  Serial.print("Stretch Trigger, max: ");
-  Serial.println(stretch_spanker.get_max(1));
+  // Serial.print("Stretch Trigger, max: ");
+  // Serial.println(stretch_spanker.get_max(1));
   for(int i=0;i<num_pulses;i++) {
     do_stretch_pulse(delay,pulse_len);
   }

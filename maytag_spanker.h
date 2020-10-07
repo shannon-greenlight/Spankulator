@@ -5,7 +5,7 @@ uint16_t *maytag_stuff[] = {_maytag_params, _maytag_mins, _maytag_maxs};
 SPANK_fxn maytag_spanker("Maytag", stretch_labels, maytag_stuff, sizeof(_maytag_params)/sizeof(_maytag_params[0]), &ui);
 
 void maytag_trigger() {
-  Serial.println("Doing Maytag trigger");
+  // Serial.println("Doing Maytag trigger");
   // reset_trigger();
   // return;
   SPANK_fxn f = maytag_spanker;
