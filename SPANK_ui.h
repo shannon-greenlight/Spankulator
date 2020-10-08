@@ -5,6 +5,8 @@
 #include <ArducamSSD1306.h>    // Modification of Adafruit_SSD1306 for ESP8266 compatibility
 #include <Adafruit_GFX.h>   // Needs a little change in original Adafruit library (See README.txt file)
 
+#include "version_num.h"
+
 // OLED Display
 /*
 HardWare I2C pins
@@ -192,16 +194,31 @@ class SPANK_ui {
       showDisplay();
     }
 
+    void terminalPrintParam(String row, String label, String val) {
+      t.printVal(row, label, val);
+    }
+
+    void terminalSplash() {
+      // Use Putty to communicate (VT100 terminal)
+      t.clrScreen();
+      t.setCursor("1", "1");
+      const int stars = 76;
+      
+      t.printChars(stars, "*");
+      t.println("");
+      t.printTitle(stars, F("The Spankulator  by  GREENFACE LABS "));
+      t.printTitle(stars, VERSION_NUM);
+      t.printChars(stars, "*");
+      t.println("");
+    }
+
     void newFxn(String fxn) {
       clearDisplay();
       t.clrDown(FXN_ROW);
+      terminalSplash();
       // t.setRow(FXN_ROW);
       // t.println("Fxn: " + fxn);
       printLine(fxn,0,2);
-    }
-
-    void terminalPrintParam(String row, String label, String val) {
-      t.printVal(row, label, val);
     }
 
     void printParam(String label, int param, int digits, const char* format, uint16_t line_num, int font_size=1,String suffix="") {
@@ -240,23 +257,14 @@ class SPANK_ui {
       //(*display).println(prefix + "-");
     }
 
-    void greet(String ver) {
+    void splash() {
       clearDisplay();  
-      printText("The Spankulator",0,0,1);
-      printText("_______________",0,8,1);
-      printText(ver + " - push any key",0,16,1);
+      printText(F("The Spankulator"),0,0,1);
+      printText(F("_______________"),0,8,1);
+      printText(VERSION_NUM " - push any key",0,16,1);
 
-      // Use Putty to communicate (VT100 terminal)
-      t.clrScreen();
-      t.setCursor("1", "1");
-      const int stars = 76;
-      
-      t.printChars(stars, "*");
-      t.println("");
-      t.printTitle(stars, F("The Spankulator  by  GREENFACE LABS "));
-      t.printTitle(stars, ver);
-      t.printChars(stars, "*");
-      t.println("");
+      terminalSplash();
+
     }
 
 };

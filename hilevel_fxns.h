@@ -350,6 +350,7 @@ void new_fxn()
 }
 
 //boolean monitor = false;
+  String in_str = "";  // for serial input
 void heartbeat()
 {
   //ui.drawPixel(127, 0, monitor ? WHITE : BLACK);
@@ -402,14 +403,29 @@ void heartbeat()
   }
   if (Serial.available() > 0)
   {
-    int c = Serial.read();
-    if (c > 20)
-    {
-      keypress = c;
-      //Serial.println(String(Serial.read()));
-      //Serial.write(c);
-      //Serial.print("(" + String(c) + ")");
+    char c = Serial.read();
+    if(c==' ' || c=='\r') {
+      process_cmd(in_str);
+      //Serial.println(in_str);
+      in_str="";
+    } else {
+      in_str+=c;
     }
+
+    // int i=0;
+    // char c;
+    // do {
+    //   in_str+=c;
+    // } while(String(c)!=" " && i++<256);
+    // process_cmd(in_str);
+    // char c = Serial.read();
+    // if (c > 20)
+    // {
+    //   keypress = c;
+    //   //Serial.println(String(Serial.read()));
+    //   //Serial.write(c);
+    //   //Serial.print("(" + String(c) + ")");
+    // }
   }
 
   // digitalWrite(gate_out_pin, HIGH);
@@ -419,8 +435,8 @@ void heartbeat()
 
 void process_keypress()
 {
-  // Serial.print("Processing keypress: ");
-  // Serial.println(char(keypress));
+  //Serial.print("Processing keypress: ");
+  //Serial.println(char(keypress));
   switch (keypress)
   {
   case 62: // >

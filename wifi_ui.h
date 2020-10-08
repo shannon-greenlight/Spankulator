@@ -401,7 +401,7 @@ void do_server() {
             break;
           } else {    // if you got a newline, then clear currentLine:
             if(strstr(currentLine.c_str(),"POST")) {
-              // cmd = currentLine[6];
+              cmd = currentLine[6];
               // Serial.println("Command: "+String(cmd));
               //int c = cmd;
               String in_str="";

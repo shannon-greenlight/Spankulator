@@ -1,26 +1,24 @@
-#define VERSION_NUM "v2.11"
 #define OLD_STYLE false
 typedef void(*FunctionPointer)();
 
-// Import required libraries
-//#include <SPI.h>         // Don't use SPI! Ports are taken
+// Load 3rd party libraries
 #include <stdlib.h>
 #include <Wire.h>           // For I2C comm, but needed for not getting compile error
 #include <Timer5.h>
 #include <Adafruit_FRAM_I2C.h>
-#include <Greenface_EEPROM.h>
-#include <EEPROM_Arr16.h>
-#include <EEPROM_Int.h>
-#include <EEPROM_Bool.h>
-#include <EEPROM_String.h>
 #include <WiFiNINA.h>
-#include <WIFI_Util.h>
 #include <arduino_secrets.h>
 
-//#include "greenface_libs\TerminalVT100\TerminalVT100.h"
-#include <TerminalVT100.h>
-#include <RotaryEncoder.h>
-// #include "greenface_libs\RotaryEncoder\RotaryEncoder.h"
+// Load Greenface libraries
+#include "version_num.h"
+#include "TerminalVT100.h"
+#include "RotaryEncoder.h"
+#include "Greenface_EEPROM.h"
+#include "EEPROM_Arr16.h"
+#include "EEPROM_Int.h"
+#include "EEPROM_Bool.h"
+#include "EEPROM_String.h"
+#include "WIFI_Util.h"
 #include "SPANK_ui.h"
 
 int volatile keypress = 0;
@@ -84,22 +82,20 @@ void setup(void)
 {
   begin_all();
 
-  set_encoder();
+  set_encoder();  // sets msb,lsb for two types of encoder
 
   // connect if wifi is active
   wifi_attempt_connect(true);
 
-  ui.greet(VERSION_NUM);
+  ui.splash();
 
   while(keypress==0)   {
     if(wifi_active.get()) {
       do_server();
     }
   }
-  // while(all_buttons_up())   {}
 
-
-  //fxn.put(0);
+  //fxn.put(0); // in case fxn is afu
 
   exe_fxn();
 
